@@ -1,4 +1,52 @@
-.stack-work/
-*~.stack-work/
+# Haskell build artifacts
 *.hi
 *.o
+*.chi
+*.chs.h
+*.dyn_hi
+*.dyn_o
+
+# GHC core output
+*.hc
+*.prof
+*.hp
+*.aux
+*.eventlog
+
+# Stack work directory
+.stack-work/
+
+# Cabal build artifacts
+dist/
+dist-newstyle/
+cabal.sandbox.config
+cabal.project.local
+cabal.project.local~
+cabal.store/
+
+# Local binaries
+*.exe
+*.out
+*.so
+*.dll
+*.dylib
+
+# GHCi history
+.ghci
+.ghc.environment.*
+
+# Mac OS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# VSCode / IntelliJ / JetBrains files
+.idea/
+.vscode/
+*.iml
+
+# Logs & temp
+*.log
+*.tmp
+*~
+
