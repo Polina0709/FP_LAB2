@@ -40,7 +40,6 @@ cabal.store/
 .AppleDouble
 .LSOverride
 
-# VSCode / IntelliJ / JetBrains files
 .idea/
 .vscode/
 *.iml
