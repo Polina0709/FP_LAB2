@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Lib
+      Sort
   other-modules:
       Paths_bitonic_sort
   autogen-modules:
@@ -36,6 +37,7 @@ library
   build-depends:
       base >=4.7 && <5
     , deepseq
+    , hspec
     , parallel
     , random
   default-language: Haskell2010
@@ -53,6 +55,7 @@ executable bitonic-sort-exe
       base >=4.7 && <5
     , bitonic-sort
     , deepseq
+    , hspec
     , parallel
     , random
   default-language: Haskell2010
@@ -71,6 +74,7 @@ test-suite bitonic-sort-test
       base >=4.7 && <5
     , bitonic-sort
     , deepseq
+    , hspec
     , parallel
     , random
   default-language: Haskell2010
