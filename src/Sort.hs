@@ -1,9 +1,10 @@
-module Sort (bitonicSort, genList) where
+module Sort (bitonicSort, bitonicSortParallel, genList) where
 
 import Control.Parallel.Strategies
 import System.Random
 import Data.List (sort)
 import Control.DeepSeq (NFData)
+import GHC.Conc (numCapabilities)
 
 ----------------------------------------------------
 -- Generate list
@@ -28,14 +29,44 @@ padToPow2 xs =
     in xs ++ replicate padCount maxBound
 
 ----------------------------------------------------
--- Bitonic Sort (Batcher with correct merging)
+-- Public: Sequential Bitonic Sort
 ----------------------------------------------------
 
-bitonicSort :: (Ord a, NFData a, Bounded a) => Bool -> [a] -> [a]
-bitonicSort up xs =
+bitonicSort :: (Ord a, NFData a, Bounded a) => [a] -> [a]
+bitonicSort xs =
     let padded = padToPow2 xs
-        sorted = bitonic padded up
-    in take (length xs) sorted  -- remove padding
+        sorted = bitonic padded True
+    in take (length xs) sorted
+
+----------------------------------------------------
+-- Public: Parallel Bitonic Sort using k threads
+----------------------------------------------------
+
+bitonicSortParallel :: (Ord a, NFData a, Bounded a) => Int -> [a] -> [a]
+bitonicSortParallel k xs =
+    let chunksList = chunk k xs
+        sortedChunks = parMap rdeepseq bitonicSort chunksList
+    in mergeAll sortedChunks
+
+chunk :: Int -> [a] -> [[a]]
+chunk k xs =
+    let n = length xs
+        size = max 1 (n `div` k)
+    in takeWhile (not . null) (map (take size) (iterate (drop size) xs))
+
+mergeAll :: (Ord a) => [[a]] -> [a]
+mergeAll = foldl1 merge
+
+merge :: Ord a => [a] -> [a] -> [a]
+merge xs [] = xs
+merge [] ys = ys
+merge (x:xs) (y:ys)
+    | x <= y    = x : merge xs (y:ys)
+    | otherwise = y : merge (x:xs) ys
+
+----------------------------------------------------
+-- Internal Bitonic Kernel
+----------------------------------------------------
 
 bitonic :: (Ord a, NFData a) => [a] -> Bool -> [a]
 bitonic [] _  = []
