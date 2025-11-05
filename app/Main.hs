@@ -40,7 +40,7 @@ main :: IO ()
 main = do
     putStrLn "Enter number of threads (k):"
     k <- readLn
-    setNumCapabilities k   -- ✅ встановлюємо k потоків
+    setNumCapabilities k  
 
     putStrLn "Enter array size:"
     n <- readLn
@@ -50,7 +50,7 @@ main = do
     putStrLn "\nSorting (Bitonic Sort)..."
 
     result <- time $ do
-        let !sorted = bitonicSort True arr   -- ✅ ВАЖЛИВО: True = сортування за зростанням
+        let !sorted = bitonicSort True arr 
         forceList sorted
         return sorted
 
