@@ -1,33 +1,65 @@
-{-# LANGUAGE BangPatterns #-}
-module Sort (parallelSort, merge, genList) where
+module Sort (bitonicSort, genList) where
 
 import Control.Parallel.Strategies
-import Control.DeepSeq (NFData)
 import System.Random
-import Data.List (sort, unfoldr)
+import Data.List (sort)
+import Control.DeepSeq (NFData)
 
-chunkSizeMin :: Int
-chunkSizeMin = 2000
-
-merge :: Ord a => [a] -> [a] -> [a]
-merge xs [] = xs
-merge [] ys = ys
-merge (x:xs) (y:ys)
-    | x <= y    = x : merge xs (y:ys)
-    | otherwise = y : merge (x:xs) ys
-
-parallelSort :: (NFData a, Ord a) => Int -> [a] -> [a]
-parallelSort k xs =
-    let parts = chunks k xs
-        sortedParts = parMap rdeepseq sort parts
-    in foldl1 merge sortedParts
-
-chunks :: Int -> [a] -> [[a]]
-chunks n xs =
-    let size = max chunkSizeMin (length xs `div` n)
-    in unfoldr (\ys ->
-        if null ys then Nothing
-        else Just $ splitAt size ys) xs
+----------------------------------------------------
+-- Generate list
+----------------------------------------------------
 
 genList :: Int -> [Int]
-genList n = take n $ randomRs (1,1000000) (mkStdGen 42)
+genList n = take n $ randomRs (1, 1000000) (mkStdGen 42)
+
+----------------------------------------------------
+-- Pad list to next power of two
+----------------------------------------------------
+
+nextPow2 :: Int -> Int
+nextPow2 n
+  | n <= 1    = 1
+  | otherwise = head $ dropWhile (< n) (iterate (*2) 1)
+
+padToPow2 :: (Bounded a) => [a] -> [a]
+padToPow2 xs =
+    let target = nextPow2 (length xs)
+        padCount = target - length xs
+    in xs ++ replicate padCount maxBound
+
+----------------------------------------------------
+-- Bitonic Sort (Batcher with correct merging)
+----------------------------------------------------
+
+bitonicSort :: (Ord a, NFData a, Bounded a) => Bool -> [a] -> [a]
+bitonicSort up xs =
+    let padded = padToPow2 xs
+        sorted = bitonic padded up
+    in take (length xs) sorted  -- remove padding
+
+bitonic :: (Ord a, NFData a) => [a] -> Bool -> [a]
+bitonic [] _  = []
+bitonic [x] _ = [x]
+bitonic xs up =
+    let (first, second) = splitAt (length xs `div` 2) xs
+        sorted1 = bitonic first True
+        sorted2 = bitonic second False
+    in bitonicMerge up (sorted1 ++ sorted2) `using` parList rdeepseq
+
+bitonicMerge :: (Ord a) => Bool -> [a] -> [a]
+bitonicMerge _ []  = []
+bitonicMerge _ [x] = [x]
+bitonicMerge up xs =
+    let (left, right) = bitonicSplit up xs
+    in bitonicMerge up left ++ bitonicMerge up right
+
+bitonicSplit :: (Ord a) => Bool -> [a] -> ([a], [a])
+bitonicSplit up xs =
+    let half = length xs `div` 2
+        first  = take half xs
+        second = drop half xs
+        cmp a b = if (a <= b) == up then a else b
+        cmp' a b = if (a <= b) == up then b else a
+        left  = zipWith cmp  first second
+        right = zipWith cmp' first second
+    in (left, right)

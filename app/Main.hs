@@ -1,26 +1,30 @@
 {-# LANGUAGE BangPatterns #-}
 module Main (main) where
 
-import Sort (parallelSort, genList)
-import Control.DeepSeq (NFData, force)
+import Sort (bitonicSort)
+import GHC.Conc (setNumCapabilities)
+import System.CPUTime (getCPUTime)
+import Text.Printf (printf)
+import System.Random (mkStdGen, randomRs)
 import Control.Exception (evaluate)
-import System.CPUTime
-import Text.Printf
+import Control.DeepSeq (NFData, force)
 
 ----------------------------------------------------
--- Force evaluation
+-- Generate deterministic random list
 ----------------------------------------------------
+genList :: Int -> [Int]
+genList n = take n $ randomRs (1, 1000000) (mkStdGen 42)
 
+----------------------------------------------------
+-- Force full list evaluation
+----------------------------------------------------
 forceList :: NFData a => [a] -> IO ()
-forceList xs = do
-    _ <- evaluate (force xs)
-    return ()
+forceList xs = evaluate (force xs) >> return ()
 
 ----------------------------------------------------
--- Timer
+-- Execution time measurement
 ----------------------------------------------------
-
-time :: IO t -> IO t
+time :: IO a -> IO a
 time action = do
     start <- getCPUTime
     result <- action
@@ -32,22 +36,23 @@ time action = do
 ----------------------------------------------------
 -- MAIN
 ----------------------------------------------------
-
 main :: IO ()
 main = do
-    putStrLn "Enter number of threads:"
-    k <- readLn     -- Number of parallel chunks
+    putStrLn "Enter number of threads (k):"
+    k <- readLn
+    setNumCapabilities k   -- ✅ встановлюємо k потоків
 
     putStrLn "Enter array size:"
-    n <- readLn     -- Array size
+    n <- readLn
 
     let !arr = genList n
 
-    putStrLn "\nSorting..."
+    putStrLn "\nSorting (Bitonic Sort)..."
+
     result <- time $ do
-        let !r = parallelSort k arr
-        forceList r
-        return r
+        let !sorted = bitonicSort True arr   -- ✅ ВАЖЛИВО: True = сортування за зростанням
+        forceList sorted
+        return sorted
 
     putStrLn "\nDone! First 30 elements:"
     print (take 30 result)
